@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เกมทายตัวละครรามเกียรติ์ (Ramakien Character Quiz)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Prompt, Kanit, Mali -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800&family=Mali:wght@500;600;700&family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rama-green': '#10B981',
+                        'rama-gold': '#F59E0B',
+                        'giant-red': '#EF4444',
+                        'monkey-white': '#F8FAFC',
+                        'thai-purple': '#8B5CF6',
+                        'thai-pink': '#EC4899',
+                        'thai-blue': '#06B6D4'
+                    },
+                    fontFamily: {
+                        kanit: ['Kanit', 'sans-serif'],
+                        mali: ['Mali', 'cursive'],
+                        prompt: ['Prompt', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Prompt', sans-serif;
+            background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 40%, #E0F2FE 100%);
+            min-height: 100vh;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-kanit { font-family: 'Kanit', sans-serif; }
+        .font-mali { font-family: 'Mali', cursive; }
+
+        /* Animations */
+        @keyframes bounce-gentle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.8); }
+        }
+
+        @keyframes shake-wrong {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
+        }
+
+        @keyframes pop-in {
+            0% { transform: scale(0.7); opacity: 0; }
+            80% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .animate-bounce-gentle { animation: bounce-gentle 2s infinite ease-in-out; }
+        .animate-pulse-glow { animation: pulse-glow 2s infinite ease-in-out; }
+        .animate-shake { animation: shake-wrong 0.4s ease-in-out; }
+        .animate-pop { animation: pop-in 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #FEF3C7; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #F59E0B; border-radius: 10px; }
+
+        /* Canvas Overlay */
+        #confettiCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col min-h-screen text-slate-800">
+    <!-- Confetti Canvas overlay -->
+    <canvas id="confettiCanvas"></canvas>
+
+    <!-- Top Navigation Header -->
+    <header class="bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 text-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <!-- Title & Mascot -->
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchMode('quiz')">
+                <div class="w-11 h-11 bg-white rounded-2xl flex items-center justify-center text-amber-600 text-2xl shadow-inner font-black animate-bounce-gentle">
+                    👑
+                </div>
+                <div>
+                    <h1 class="font-kanit text-xl md:text-2xl font-black tracking-wide leading-none text-yellow-100 flex items-center gap-2">
+                        เกมทายตัวละครรามเกียรติ์
+                    </h1>
+                    <p class="text-xs text-amber-100 font-medium">Ramakien Character Quiz • เรียนรู้วรรณคดีไทยสุดสนุก</p>
+                </div>
+            </div>
+
+            <!-- Controls: Sound & Score Stats -->
+            <div class="flex items-center space-x-2 md:space-x-4">
+                <!-- Global Sound Toggle -->
+                <button id="soundToggleBtn" onclick="toggleSound()" class="bg-white/20 hover:bg-white/30 text-white p-2.5 rounded-xl transition duration-200 flex items-center justify-center shadow" title="เปิด/ปิด เสียง">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+
+                <!-- Points & Streak Display -->
+                <div class="flex items-center bg-black/20 backdrop-blur rounded-2xl px-3 py-1.5 border border-white/20 space-x-3">
+                    <div class="flex items-center space-x-1" title="คะแนนสะสม">
+                        <span class="text-xl">⭐</span>
+                        <span id="scoreDisplay" class="font-kanit font-black text-amber-300 text-lg">0</span>
+                    </div>
+                    <div class="h-4 w-0.5 bg-white/30"></div>
+                    <div class="flex items-center space-x-1" title="ตอบถูกต่อเนื่อง">
+                        <span class="text-xl">🔥</span>
+                        <span id="streakDisplay" class="font-kanit font-black text-orange-400 text-lg">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Navigation Tabs -->
+        <div class="bg-amber-600/60 backdrop-blur border-t border-amber-400/30">
+            <div class="max-w-4xl mx-auto flex justify-around px-2">
+                <button id="tab-quiz" onclick="switchMode('quiz')" class="flex-1 py-2.5 text-center font-kanit font-bold text-sm md:text-base border-b-4 border-yellow-300 text-yellow-200 transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-magnifying-glass text-amber-300"></i>
+                    <span>นักสืบรามเกียรติ์</span>
+                </button>
+                <button id="tab-speed" onclick="switchMode('speed')" class="flex-1 py-2.5 text-center font-kanit font-bold text-sm md:text-base border-b-4 border-transparent text-amber-100 hover:text-white transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-yellow-300"></i>
+                    <span>ทายไวตอบไว</span>
+                </button>
+                <button id="tab-codex" onclick="switchMode('codex')" class="flex-1 py-2.5 text-center font-kanit font-bold text-sm md:text-base border-b-4 border-transparent text-amber-100 hover:text-white transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-book-open text-amber-200"></i>
+                    <span>สมุดภาพตัวละคร</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-5xl w-full mx-auto p-3 md:p-6 flex flex-col justify-start">
+
+        <!-- ================= MODE 1: CLUE QUIZ MODE ================= -->
+        <section id="mode-quiz" class="space-y-4">
+            <!-- Quiz Card Header -->
+            <div class="flex items-center justify-between bg-white rounded-2xl p-4 shadow-md border-2 border-amber-200">
+                <div class="flex items-center space-x-3">
+                    <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1.5 rounded-full font-kanit border border-amber-300">
+                        ข้อที่ <span id="quizCurrentNum">1</span> / <span id="quizTotalNum">10</span>
+                    </span>
+                    <span id="quizCategoryBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1.5 rounded-full font-kanit border border-emerald-300">
+                        ฝ่ายมนุษย์/เทพ
+                    </span>
+                </div>
+                <!-- Stars reward indicator -->
+                <div id="starsContainer" class="flex space-x-1 text-yellow-400 text-lg">
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                    <i class="fa-solid fa-star"></i>
+                </div>
+            </div>
+
+            <!-- Clue Box & Silhouette Canvas Area -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                <!-- Silhouette / revealed portrait -->
+                <div class="md:col-span-5 bg-white rounded-3xl p-6 shadow-xl border-4 border-amber-300 flex flex-col items-center justify-center relative overflow-hidden group">
+                    <div class="absolute -top-10 -left-10 w-32 h-32 bg-amber-100 rounded-full blur-2xl opacity-60"></div>
+                    <div class="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-100 rounded-full blur-2xl opacity-60"></div>
+
+                    <!-- SVG Avatar Container -->
+                    <div id="characterAvatarWrapper" class="w-48 h-48 md:w-56 md:h-56 relative flex items-center justify-center transition-all duration-500 transform hover:scale-105">
+                        <div id="avatarSvgContainer" class="w-full h-full filter drop-shadow-md">
+                            <!-- SVG rendered dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Status Label under portrait -->
+                    <div id="avatarStatusLabel" class="mt-3 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-secret"></i> ถอดรหัสเบาะแสเพื่อเปิดเผยโฉม!
+                    </div>
+                </div>
+
+                <!-- Progressive Clues Box -->
+                <div class="md:col-span-7 space-y-3">
+                    <div class="bg-white rounded-3xl p-5 shadow-lg border-2 border-orange-200 relative">
+                        <div class="flex items-center justify-between mb-3 border-b border-orange-100 pb-2">
+                            <h2 class="font-kanit font-bold text-lg text-amber-900 flex items-center gap-2">
+                                <i class="fa-solid fa-magnifying-glass-chart text-orange-500"></i>
+                                เบาะแสจากคำบอกเล่า
+                            </h2>
+                            <button id="nextClueBtn" onclick="revealNextClue()" class="text-xs bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold px-3 py-1.5 rounded-full transition shadow flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> ขอเบาะแสเพิ่ม
+                            </button>
+                        </div>
+
+                        <!-- Clues List -->
+                        <div class="space-y-2 text-sm md:text-base">
+                            <div id="clue1" class="p-3 bg-amber-50/80 rounded-2xl border-l-4 border-amber-500 font-medium text-amber-950 transition-all flex items-start gap-2.5">
+                                <span class="bg-amber-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+                                <p id="clueText1">กำลังโหลดเบาะแสแรก...</p>
+                            </div>
+                            <div id="clue2" class="p-3 bg-slate-100 rounded-2xl border-l-4 border-slate-300 font-medium text-slate-400 transition-all flex items-start gap-2.5 opacity-60">
+                                <span class="bg-slate-300 text-slate-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+                                <p id="clueText2">🔒 กด "ขอเบาะแสเพิ่ม" เพื่อปลดล็อก (หัก 25 คะแนน)</p>
+                            </div>
+                            <div id="clue3" class="p-3 bg-slate-100 rounded-2xl border-l-4 border-slate-300 font-medium text-slate-400 transition-all flex items-start gap-2.5 opacity-60">
+                                <span class="bg-slate-300 text-slate-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+                                <p id="clueText3">🔒 เบาะแสสุดท้ายเฉลยลักษณะเด่นพิเศษ</p>
+                            </div>
+                        </div>
+
+                        <!-- Action Helper: 50:50 -->
+                        <div class="mt-4 flex justify-between items-center">
+                            <span class="text-xs text-slate-400">💡 ทายถูกในเบาะแสแรกรับ 100 คะแนนเต็ม!</span>
+                            <button id="fiftyFiftyBtn" onclick="useFiftyFifty()" class="bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-xs px-3 py-1.5 rounded-xl border border-purple-300 transition flex items-center gap-1">
+                                <span>✨ ตัวช่วย 50:50 (ตัด 2 ตัวเลือก)</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Options Grid -->
+            <div class="mt-4">
+                <p class="text-center font-kanit font-bold text-amber-900 mb-3 text-base">
+                    คิดว่าตัวละครนี้คือใคร? เลือกคำตอบด้านล่างเลย! 👇
+                </p>
+                <div id="quizOptionsGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- Option Buttons generated dynamically -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= MODE 2: SPEED VISUAL MATCH ================= -->
+        <section id="mode-speed" class="hidden space-y-4">
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <span class="bg-yellow-400 text-purple-950 font-black text-xs px-3 py-1 rounded-full uppercase tracking-wider">โหมดท้าทายความไว</span>
+                        <h2 class="font-kanit font-black text-2xl md:text-3xl text-yellow-300 mt-1">⚡ ทายไวตอบไว!</h2>
+                        <p class="text-sm text-purple-100 mt-1">ทายตัวละครจากคำถามสั้นและรูปโฉม จับเวลา 15 วินาทีต่อข้อ!</p>
+                    </div>
+
+                    <!-- Timer Circle -->
+                    <div class="flex items-center space-x-4 bg-white/10 backdrop-blur rounded-2xl p-3 border border-white/20">
+                        <div class="relative w-16 h-16 flex items-center justify-center">
+                            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                <path class="text-purple-900 stroke-current" stroke-width="4" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                <path id="timerCircleProgress" class="text-yellow-400 stroke-current transition-all duration-1000" stroke-dasharray="100, 100" stroke-width="4" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                            </svg>
+                            <span id="speedTimerText" class="absolute font-kanit font-black text-xl text-yellow-300">15</span>
+                        </div>
+                        <div>
+                            <p class="text-xs text-purple-200">คะแนนรอบนี้</p>
+                            <p id="speedScoreDisplay" class="font-kanit font-bold text-xl text-white">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed Question Card -->
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-2 border-purple-200 text-center space-y-4">
+                <div class="inline-block bg-purple-50 text-purple-700 text-xs font-bold px-3 py-1 rounded-full border border-purple-200">
+                    คำถามข้อที่ <span id="speedCurrentNum">1</span> / 10
+                </div>
+
+                <h3 id="speedQuestionTitle" class="font-kanit font-bold text-xl md:text-2xl text-slate-800">
+                    "ตัวละครไหนมีกายสีเขียวสดใส และเป็นพระเอกของเรื่อง?"
+                </h3>
+
+                <!-- 4 Options Cards Grid -->
+                <div id="speedOptionsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                    <!-- Cards dynamically created -->
+                </div>
+            </div>
+        </section>
+
+
+        <!-- ================= MODE 3: CHARACTER CODEX (สมุดภาพ) ================= -->
+        <section id="mode-codex" class="hidden space-y-4">
+            <!-- Codex Banner & Faction Filters -->
+            <div class="bg-white rounded-3xl p-5 shadow-md border-2 border-amber-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div>
+                    <h2 class="font-kanit font-black text-2xl text-amber-900 flex items-center gap-2">
+                        <i class="fa-solid fa-book-bookmark text-amber-500"></i>
+                        สมุดภาพและนิทานตัวละคร
+                    </h2>
+                    <p class="text-xs text-slate-600">คลิกที่ตัวละครเพื่ออ่านประวัติ สีประจำกาย อาวุธ และฟังเสียงเอกลักษณ์!</p>
+                </div>
+
+                <!-- Filter Tabs -->
+                <div class="flex flex-wrap gap-1.5 bg-amber-50 p-1.5 rounded-2xl border border-amber-200">
+                    <button onclick="filterCodex('all')" class="codex-filter-btn active bg-amber-500 text-white px-3 py-1 rounded-xl text-xs font-bold transition">ทั้งหมด</button>
+                    <button onclick="filterCodex('มนุษย์/เทพ')" class="codex-filter-btn text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-xl text-xs font-bold transition">มนุษย์/เทพ</button>
+                    <button onclick="filterCodex('ลิง')" class="codex-filter-btn text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-xl text-xs font-bold transition">ฝ่ายลิง</button>
+                    <button onclick="filterCodex('ยักษ์')" class="codex-filter-btn text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-xl text-xs font-bold transition">ฝ่ายยักษ์</button>
+                </div>
+            </div>
+
+            <!-- Codex Cards Grid -->
+            <div id="codexGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <!-- Cards dynamically created -->
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- ================= CHARACTER DETAILS & VOICE MODAL ================= -->
+    <div id="codexModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 shadow-2xl border-4 border-amber-300 relative animate-pop max-h-[90vh] overflow-y-auto">
+            <!-- Close Button -->
+            <button onclick="closeCodexModal()" class="absolute top-4 right-4 bg-slate-100 hover:bg-red-500 hover:text-white text-slate-600 w-9 h-9 rounded-full flex items-center justify-center transition shadow">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Modal Content Header -->
+            <div class="flex flex-col sm:flex-row items-center gap-4 border-b border-slate-100 pb-4">
+                <div id="modalAvatarBox" class="w-32 h-32 flex-shrink-0 bg-amber-50 rounded-2xl p-2 border-2 border-amber-200 flex items-center justify-center">
+                    <!-- SVG Avatar rendered dynamically -->
+                </div>
+                <div class="text-center sm:text-left space-y-1">
+                    <span id="modalFactionBadge" class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full font-kanit">
+                        ฝ่ายมนุษย์/เทพ
+                    </span>
+                    <h3 id="modalCharName" class="font-kanit font-black text-2xl text-slate-800">พระราม</h3>
+                    <p id="modalCharTitle" class="text-xs text-amber-700 font-semibold">องค์อวตารของพระนารายณ์</p>
+                </div>
+            </div>
+
+            <!-- Attributes Grid -->
+            <div class="grid grid-cols-2 gap-3 my-4 text-xs">
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <span class="text-slate-400 block font-medium">🎨 สีประจำกาย</span>
+                    <span id="modalBodyColor" class="font-kanit font-bold text-sm text-slate-800">สีเขียวมรกต</span>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                    <span class="text-slate-400 block font-medium">🗡️ อาวุธ / ของวิเศษ</span>
+                    <span id="modalWeapon" class="font-kanit font-bold text-sm text-slate-800">ศรพรหมาสตร์</span>
+                </div>
+            </div>
+
+            <!-- Story / Fun Fact -->
+            <div class="space-y-2">
+                <h4 class="font-kanit font-bold text-sm text-amber-900 flex items-center gap-1.5">
+                    <i class="fa-solid fa-star text-amber-500"></i> เรื่องราวน่ารู้ของตัวละคร
+                </h4>
+                <p id="modalStoryText" class="text-xs md:text-sm text-slate-700 leading-relaxed bg-amber-50/60 p-4 rounded-2xl border border-amber-100 font-mali">
+                    เรื่องราวของตัวละครจะแสดงตรงนี้...
+                </p>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= END GAME CELEBRATION MODAL ================= -->
+    <div id="endGameModal" class="fixed inset-0 bg-black/70 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 text-center shadow-2xl border-4 border-yellow-400 relative animate-pop space-y-4">
+            <div class="w-20 h-20 bg-yellow-100 text-yellow-500 rounded-full flex items-center justify-center text-4xl mx-auto shadow-inner border-2 border-yellow-300 animate-bounce-gentle">
+                🏆
+            </div>
+
+            <h2 id="endModalTitle" class="font-kanit font-black text-2xl text-amber-900">เก่งมาก! ได้เป็นเซียนรามเกียรติ์</h2>
+            <p id="endModalSubtitle" class="text-xs text-slate-600">น้องทายตัวละครได้ถูกต้องน่าประทับใจมาก!</p>
+
+            <div id="endStarsDisplay" class="flex justify-center text-yellow-400 text-3xl space-x-2 py-1">
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+                <i class="fa-solid fa-star"></i>
+            </div>
+
+            <div class="bg-amber-50 rounded-2xl p-4 border border-amber-200 flex justify-around items-center">
+                <div>
+                    <span class="text-xs text-amber-700 font-medium block">คะแนนทั้งหมด</span>
+                    <span id="endFinalScore" class="font-kanit font-black text-2xl text-amber-900">850</span>
+                </div>
+                <div class="h-8 w-0.5 bg-amber-200"></div>
+                <div>
+                    <span class="text-xs text-amber-700 font-medium block">เหรียญเกียรติยศ</span>
+                    <span id="endBadgeName" class="font-kanit font-bold text-sm text-amber-950">🏅 ยอดนักสืบ</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 pt-2">
+                <button onclick="restartQuizMode()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-kanit font-bold py-3 rounded-2xl shadow-lg text-base transition transform active:scale-95">
+                    🎮 เล่นใหม่อีกครั้ง
+                </button>
+                <button onclick="switchMode('codex'); closeEndModal();" class="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 font-kanit font-bold py-2.5 rounded-2xl border border-amber-300 text-sm transition">
+                    📖 สำรวจสมุดภาพตัวละคร
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Footer -->
+    <footer class="bg-amber-900 text-amber-200 text-center text-xs py-3 mt-8">
+        <p>เกมทายตัวละครรามเกียรติ์ (Ramakien Character Quiz) • สื่อการเรียนรู้วรรณคดีไทยสุดสร้างสรรค์</p>
+    </footer>
+
+
+    <!-- ================= JAVASCRIPT ENGINE ================= -->
+    <script>
+        /* ----------------------------------------------------
+           1. CHARACTER DATASET (12 Main Characters)
+        ---------------------------------------------------- */
+        const RAMAKIEN_CHARACTERS = [
+            {
+                id: 'phra_ram',
+                name: 'พระราม',
+                title: 'องค์อวตารของพระนารายณ์ พระเอกของเรื่อง',
+                faction: 'มนุษย์/เทพ',
+                colorName: 'สีเขียวมรกต',
+                colorHex: '#10B981',
+                weapon: 'ศรพรหมาสตร์ / ศรศิลป์',
+                clues: [
+                    'ฉันเป็นพระเอกของเรื่องรามเกียรติ์ มีผิวกายสีเขียวมรกตสดใส',
+                    'ฉันทรงศรวิเศษ (คันศร) เป็นอาวุธคู่กาย และมีมเหสีชื่อว่า นางสีดา',
+                    'ฉันเป็นพี่ชายของพระลักษณ์ นำทัพวานรต่อสู้กับทศกัณฐ์เพื่อชิงนางสีดากลับคืน'
+                ],
+                story: 'พระราม คือองค์พระนารายณ์อวตารลงมาเกิดเป็นพระราชบุตรของท้าวทศรถ มีกายสีเขียว สุภาพ อ่อนโยน มีความกตัญญูและซื่อสัตย์ ทรงศรวิเศษที่ยิงได้อย่างแม่นยำ!',
+                bgGradient: 'from-emerald-400 to-teal-600'
+            },
+            {
+                id: 'phra_lak',
+                name: 'พระลักษณ์',
+                title: 'พระอนุชาผู้จงรักภักดีของพระราม',
+                faction: 'มนุษย์/เทพ',
+                colorName: 'สีทองผ่อง (สีเหลือง)',
+                colorHex: '#F59E0B',
+                weapon: 'ศรพลายวาต',
+                clues: [
+                    'ฉันเป็นน้องชายแท้ๆ ที่คอยติดตามดูแลพระรามไปทุกที่ในป่า',
+                    'กายของฉันมีสีทองผ่องสว่างไสวสวยงาม',
+                    'ฉันเคยโดนหอกโมกขศักดิ์ของกุมภกรรณ และโดนศรพรหมาสตร์ของอินทรชิต'
+                ],
+                story: 'พระลักษณ์ น้องชายผู้ซื่อสัตย์ของพระราม มีกายสีทอง เป็นองค์อนันตนาคราชอวตารลงมาช่วยพระรามทำศึกกับเหล่ายักษ์',
+                bgGradient: 'from-yellow-400 to-amber-600'
+            },
+            {
+                id: 'hanuman',
+                name: 'หนุมาน',
+                title: 'พญาวานรเผือก ทหารเอกผู้มีอิทธิฤทธิ์',
+                faction: 'ลิง',
+                colorName: 'สีขาวเผือก',
+                colorHex: '#F8FAFC',
+                weapon: 'ตรีเพชร (สามง่าม)',
+                clues: [
+                    'ฉันเป็นวานร (ลิง) ที่มีกายสีขาวบริสุทธิ์ ขนเป็นเพชร',
+                    'ฉันมีเขี้ยวแก้วอยู่กลางเพดานปาก สามารถหาวเป็นดาวเป็นเดือนได้!',
+                    'ฉันเป็นลูกของพระพาย มีตรีเพชรเป็นอาวุธ ฆ่าไม่ตาย เมื่อลมพัดมาก็ฟื้นคืนชีพ'
+                ],
+                story: 'หนุมาน วานรเผือกทหารเอกของพระราม เก่งกาจและเฉลียวฉลาดมาก มีเขี้ยวแก้วกลางเพดานปาก เมื่อหาวออกมาจะเห็นดาวและเดือนเต็มท้องฟ้า!',
+                bgGradient: 'from-slate-200 to-slate-400'
+            },
+            {
+                id: 'thotsakan',
+                name: 'ทศกัณฐ์',
+                title: 'พญายักษ์เจ้ากรุงลงกา ผู้มี 10 หน้า 20 มือ',
+                faction: 'ยักษ์',
+                colorName: 'สีเขียวสด',
+                colorHex: '#059669',
+                weapon: 'กระบอง / ศรพรหมาสตร์',
+                clues: [
+                    'ฉันเป็นพญายักษ์ผู้ครองเมืองลงกา มีกายสีเขียว',
+                    'ฉันมีจุดเด่นที่ไม่เหมือนใคร คือมี 10 หน้า และมี 20 มือ!',
+                    'ฉันเป็นผู้ลักพาตัวนางสีดาไปไว้ที่กรุงลงกา จนเกิดศึกสงครามครั้งใหญ่'
+                ],
+                story: 'ทศกัณฐ์ พญายักษ์เจ้าเมืองลงกา ร่างกายใหญ่โต มี 10 หน้า 20 มือ ถอดดวงใจใส่ไว้ในกล่องกับพระฤๅษีโคบุตร ทำให้ไม่มีใครฆ่าตายได้ง่ายๆ!',
+                bgGradient: 'from-emerald-600 to-green-800'
+            },
+            {
+                id: 'sida',
+                name: 'นางสีดา',
+                title: 'มเหสีผู้โฉมงามของพระราม',
+                faction: 'มนุษย์/เทพ',
+                colorName: 'สีนวลผ่อง (ผิวกายทองผุดผ่อง)',
+                colorHex: '#FDE047',
+                weapon: 'ความซื่อสัตย์และสัจจะวาจา',
+                clues: [
+                    'ฉันเป็นหญิงสาวผู้โฉมงามที่สุดในเรื่อง และเป็นมเหสีของพระราม',
+                    'ฉันเกิดมาจากพิธียกศรคู่ และเคยลุยไฟเพื่อพิสูจน์ความบริสุทธิ์',
+                    'ฉันถูกทศกัณฐ์ลักพาตัวไปซ่อนไว้ในสวนอ้อย กรุงลงกา'
+                ],
+                story: 'นางสีดา พระธิดาของท้าวจนก (องค์อวตารของพระลักษมี) มีผิวกายนวลผ่อง มีความซื่อสัตย์รักเดียวใจเดียวต่อพระรามมาก',
+                bgGradient: 'from-amber-200 to-yellow-400'
+            },
+            {
+                id: 'piphek',
+                name: 'พิเภก',
+                title: 'ยักษ์นักโหราศาสตร์ ผู้รู้แจ้งเห็นจริง',
+                faction: 'ยักษ์',
+                colorName: 'สีกลีบบัว (เขียวอ่อนนวล)',
+                colorHex: '#A7F3D0',
+                weapon: 'แว่นแก้วทิพย์ / ตำราโหราศาสตร์',
+                clues: [
+                    'ฉันเป็นน้องชายของทศกัณฐ์ แต่มีกายสีกลีบบัว (เขียวอ่อน)',
+                    'ฉันเป็นโหราจารย์ (นักทำนาย) ทำนายดวงเมืองได้อย่างแม่นยำ',
+                    'ฉันถูกทศกัณฐ์เนรเทศ จึงย้ายมาช่วยทำนายดวงและกลศึกให้แก่พระราม'
+                ],
+                story: 'พิเภก ยักษ์ผู้ซื่อสัตย์และตั้งมั่นในความถูกต้อง แม้เป็นน้องทศกัณฐ์ แต่เมื่อเห็นพี่ชายทำผิดก็เตือนความจริง จนถูกเนรเทศและมาช่วยสู้ศึกฝั่งพระราม',
+                bgGradient: 'from-teal-300 to-emerald-500'
+            },
+            {
+                id: 'kumbhakarna',
+                name: 'กุมภกรรณ',
+                title: 'พญายักษ์ผู้รักษาคุณธรรม ชอบการนอนหลับ',
+                faction: 'ยักษ์',
+                colorName: 'สีเขียวใบไม้',
+                colorHex: '#15803D',
+                weapon: 'หอกโมกขศักดิ์',
+                clues: [
+                    'ฉันเป็นยักษ์ตัวใหญ่มาก และเป็นน้องชายของทศกัณฐ์',
+                    'ฉันชอบการนอนหลับเป็นชีวิตจิตใจ นอนทีละนานๆ หลายเดือน',
+                    'ฉันมีอาวุธประจำกายอันทรงพลังคือ "หอกโมกขศักดิ์"'
+                ],
+                story: 'กุมภกรรณ ยักษ์ผู้รักความซื่อสัตย์ แต่ต้องออกรบเพราะความซื่อสัตย์ต่อพี่ชาย (ทศกัณฐ์) มีหอกโมกขศักดิ์เป็นอาวุธที่เกือบทำลายพระลักษณ์ได้!',
+                bgGradient: 'from-green-700 to-emerald-900'
+            },
+            {
+                id: 'indrajit',
+                name: 'อินทรชิต',
+                title: 'ลูกชายทศกัณฐ์ ผู้เคยรบชนะพระอินทร์',
+                faction: 'ยักษ์',
+                colorName: 'สีเขียวม้าเพชร (เขียวปนดำ)',
+                colorHex: '#047857',
+                weapon: 'ศรพรหมาสตร์ (แปลงกายเป็นพระอินทร์)',
+                clues: [
+                    'ฉันเป็นลูกชายสุดรักของทศกัณฐ์และนางมณโฑ',
+                    'เดิมชื่อรณพักตร์ แต่รบชนะพระอินทร์ จึงได้ชื่อใหม่นี้มา',
+                    'ฉันสามารถชุบศรพรหมาสตร์ และแปลงกายเป็นพระอินทร์ขี่ช้างเอราวัณได้'
+                ],
+                story: 'อินทรชิต เจ้าชายยักษ์ผู้มีฤทธิ์เดชสูงส่ง ชนะศึกพระอินทร์ สามารถชุบศรพิษและชุบตัวในพิธีบวงสรวง แปลงกายหลอกกองทัพพระรามได้',
+                bgGradient: 'from-emerald-800 to-teal-950'
+            },
+            {
+                id: 'suphrip',
+                name: 'สุครีพ',
+                title: 'พญาวานรผู้ครองเมืองขีดขิน กายสีแดง',
+                faction: 'ลิง',
+                colorName: 'สีแดงสุริยะ',
+                colorHex: '#EF4444',
+                weapon: 'พระขรรค์ / กำลังกายวานร',
+                clues: [
+                    'ฉันเป็นพญาวานร เจ้าเมืองขีดขิน และเป็นน้าของหนุมาน',
+                    'กายของฉันมีสีแดงสดเหมือนดวงอาทิตย์',
+                    'ฉันเป็นน้องชายของพาลี และเกณฑ์กองทัพลิงทั้งหมดมาช่วยพระราม'
+                ],
+                story: 'สุครีพ บุตรพระอาทิตย์ มีกายสีแดงสด เป็นน้าชายของหนุมาน นำทัพลิงเมืองขีดขินเข้าร่วมรบกับพระรามด้วยความจงรักภักดี',
+                bgGradient: 'from-red-500 to-orange-600'
+            },
+            {
+                id: 'ongkot',
+                name: 'องคต',
+                title: 'วานรผู้มีปัญญา นั่งบนขนดหางเสมอกับทศกัณฐ์',
+                faction: 'ลิง',
+                colorName: 'สีเขียวมรกตปนทอง',
+                colorHex: '#10B981',
+                weapon: 'พระขรรค์ / ปัญญาทูต',
+                clues: [
+                    'ฉันเป็นลูกชายของพาลี และนางมณโฑ',
+                    'ฉันเป็นทูตวานรผู้เจรจาขอนางสีดากลับคืนจากทศกัณฐ์',
+                    'ฉันม้วนหางขดเป็นแท่นสูง เพื่อให้นั่งสูงเท่ากับบัลลังก์ของทศกัณฐ์!'
+                ],
+                story: 'องคต วานรปัญญาเลิศ บุตรพาลี เมื่อได้รับมอบหมายเป็นทูตไปเจรหากับทศกัณฐ์ ทศกัณฐ์ไม่จัดเก้าอี้ให้ องคตจึงม้วนหางตัวเองนั่งสูงเทียมบัลลังก์ยักษ์!',
+                bgGradient: 'from-emerald-500 to-green-700'
+            },
+            {
+                id: 'nilaphat',
+                name: 'นิลพัท',
+                title: 'พญาวานรแห่งเมืองชมพู กายสีดำสนิท',
+                faction: 'ลิง',
+                colorName: 'สีดำสนิท (นิล)',
+                colorHex: '#1E293B',
+                weapon: 'พละกำลังขนย้ายศิลา',
+                clues: [
+                    'ฉันเป็นพญาวานรที่มีกายสีดำนิลสนิท',
+                    'ฉันมาจากเมืองชมพู และเคยทะเลาะกับหนุมานตอนขนหินจองถนน',
+                    'พระรามจึงสั่งให้ฉันไปดูแลเมืองขีดขินและคอยลำเลียงเสบียงแทน'
+                ],
+                story: 'นิลพัท วานรกายสีดำสนิท มีฤทธิ์เดชทัดเทียมหนุมาน แม้เคยขัดแย้งกับหนุมาน แต่ก็ช่วยพระรามทำศึกอย่างเต็มกำลัง',
+                bgGradient: 'from-slate-700 to-slate-900'
+            },
+            {
+                id: 'matchanu',
+                name: 'มัจฉานุ',
+                title: 'บุตรหนุมานกับนางสุพรรณมัจฉา ตัวเป็นลิงหางเป็นปลา',
+                faction: 'ลิง',
+                colorName: 'สีขาวบริสุทธิ์ (หางปลาสีฟ้า)',
+                colorHex: '#F1F5F9',
+                weapon: 'ตรีเพชร / แหวกว่ายในน้ำ',
+                clues: [
+                    'ฉันเป็นลูกชายของหนุมาน กับนางสุพรรณมัจฉา',
+                    'ร่างกายท่อนบนของฉันเป็นลิงกายสีขาว แต่ท่อนล่างเป็นหางปลา!',
+                    'ฉันอาศัยอยู่ในเมืองบาดาลกับไมยราบยักษ์'
+                ],
+                story: 'มัจฉานุ ลิงน้อยน่ารักที่มีหางเป็นปลา เกิดจากหนุมานและนางสุพรรณมัจฉา ว่ายน้ำเก่งมาก และกตัญญูต่อทั้งพ่อและผู้เลี้ยงดู',
+                bgGradient: 'from-cyan-300 to-blue-500'
+            }
+        ];
+
+        /* ----------------------------------------------------
+           2. AUDIO SYSTEM (UI Sound FX)
+        ---------------------------------------------------- */
+        let audioCtx = null;
+        let isSoundOn = true;
+
+        // Auto unlock AudioContext on user interaction
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        document.addEventListener('pointerdown', initAudio, { once: true });
+        document.addEventListener('keydown', initAudio, { once: true });
+
+        function toggleSound() {
+            isSoundOn = !isSoundOn;
+            const btn = document.getElementById('soundToggleBtn');
+            const icon = document.getElementById('soundIcon');
+            if (isSoundOn) {
+                icon.className = 'fa-solid fa-volume-high text-lg';
+                btn.classList.remove('bg-red-500/80');
+                playPopSound();
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg';
+                btn.classList.add('bg-red-500/80');
+            }
+        }
+
+        function playPopSound() {
+            if (!isSoundOn) return;
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.08);
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        function playCorrectSound() {
+            if (!isSoundOn) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.2);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + idx * 0.08);
+                osc.stop(now + idx * 0.08 + 0.2);
+            });
+        }
+
+        function playWrongSound() {
+            if (!isSoundOn) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(180, now);
+            osc.frequency.linearRampToValueAtTime(110, now + 0.3);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.3);
+        }
+
+        function playFanfareSound() {
+            if (!isSoundOn) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const tune = [
+                { f: 523.25, d: 0.15 }, { f: 659.25, d: 0.15 }, { f: 783.99, d: 0.15 },
+                { f: 1046.5, d: 0.4 }
+            ];
+            let elapsed = 0;
+            tune.forEach(note => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(note.f, now + elapsed);
+                gain.gain.setValueAtTime(0.4, now + elapsed);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + elapsed + note.d);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + elapsed);
+                osc.stop(now + elapsed + note.d);
+                elapsed += note.d + 0.03;
+            });
+        }
+
+        // Web Audio Synthesized FX per character type
+        function playCharacterAudioEffect(charId) {
+            if (!isSoundOn) return;
+            initAudio();
+            if (!audioCtx) return;
+            const now = audioCtx.currentTime;
+
+            if (charId === 'hanuman' || charId === 'suphrip' || charId === 'ongkot' || charId === 'nilaphat') {
+                // Monkey high squeak chatter sound
+                for (let i = 0; i < 2; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(650 + i * 120, now + i * 0.1);
+                    osc.frequency.linearRampToValueAtTime(1350 + i * 100, now + i * 0.1 + 0.1);
+                    osc.frequency.linearRampToValueAtTime(800, now + i * 0.1 + 0.2);
+                    gain.gain.setValueAtTime(0.3, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.22);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.22);
+                }
+            } else if (charId === 'matchanu') {
+                // Water bubble splash effect
+                for (let i = 0; i < 3; i++) {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400 + i * 150, now + i * 0.07);
+                    osc.frequency.linearRampToValueAtTime(900 + i * 150, now + i * 0.07 + 0.06);
+                    gain.gain.setValueAtTime(0.2, now + i * 0.07);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.07 + 0.06);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.07);
+                    osc.stop(now + i * 0.07 + 0.06);
+                }
+            } else if (charId === 'thotsakan' || charId === 'kumbhakarna' || charId === 'indrajit' || charId === 'piphek') {
+                // Deep Giant Thunder/Rumble synth
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(65, now + 0.5);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.5);
+            } else {
+                // Royal Bow Twang / Magic Chime
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((f, i) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(f, now + i * 0.06);
+                    gain.gain.setValueAtTime(0.25, now + i * 0.06);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.06 + 0.2);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + i * 0.06);
+                    osc.stop(now + i * 0.06 + 0.2);
+                });
+            }
+        }
+
+        // Enhanced Thai Character Speech & Signature Audio Speaker
+        function playCharacterVoice(charId) {
+            if (!isSoundOn) return;
+            const char = RAMAKIEN_CHARACTERS.find(c => c.id === charId);
+            if (!char) return;
+
+            // 1. Play Synthesized Sound FX (Giant roar, Monkey squeak, Bow twang, Water splash)
+            playCharacterAudioEffect(charId);
+
+            // 2. Play Speech Synthesis Voice Line in Thai
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel(); // Reset active voice queue
+                    const utterance = new SpeechSynthesisUtterance(char.voiceText);
+                    utterance.lang = 'th-TH';
+
+                    // Adjust speech pitch & speed based on faction character type
+                    if (char.faction === 'ลิง') {
+                        utterance.pitch = 1.35;
+                        utterance.rate = 1.1;
+                    } else if (char.faction === 'ยักษ์') {
+                        utterance.pitch = 0.75;
+                        utterance.rate = 0.95;
+                    } else {
+                        utterance.pitch = 1.05;
+                        utterance.rate = 1.0;
+                    }
+
+                    // Select Thai Voice engine if available
+                    const voices = window.speechSynthesis.getVoices();
+                    const thaiVoice = voices.find(v => v.lang && (v.lang.includes('th') || v.lang.includes('TH')));
+                    if (thaiVoice) {
+                        utterance.voice = thaiVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.warn('Web Speech API fallback enabled:', e);
+                }
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           3. DYNAMIC INLINE SVG CHARACTER ARTWORK GENERATOR
+        ---------------------------------------------------- */
+        function createCharacterSVG(charId, isSilhouette = false) {
+            const char = RAMAKIEN_CHARACTERS.find(c => c.id === charId) || RAMAKIEN_CHARACTERS[0];
+            const skinColor = isSilhouette ? '#334155' : char.colorHex;
+            const crownColor = isSilhouette ? '#1E293B' : '#F59E0B';
+            const ornamentColor = isSilhouette ? '#475569' : '#FBBF24';
+
+            let extraFeature = '';
+
+            if (charId === 'thotsakan') {
+                // 10 Mini Heads stacked + Tusks
+                extraFeature += `
+                    <g transform="translate(0, -25)">
+                        <circle cx="80" cy="45" r="7" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                        <circle cx="100" cy="40" r="8" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                        <circle cx="120" cy="45" r="7" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                        <circle cx="90" cy="30" r="6" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                        <circle cx="110" cy="30" r="6" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                        <circle cx="100" cy="18" r="5" fill="${isSilhouette ? '#1E293B' : '#059669'}" />
+                    </g>
+                    <!-- Giant Tusks -->
+                    <path d="M 75 125 Q 70 135 62 130 Q 72 120 78 122 Z" fill="${isSilhouette ? '#475569' : '#FFFFFF'}" />
+                    <path d="M 125 125 Q 130 135 138 130 Q 128 120 122 122 Z" fill="${isSilhouette ? '#475569' : '#FFFFFF'}" />
+                `;
+            } else if (charId === 'hanuman') {
+                // Diamond canine tooth + Monkey ears
+                extraFeature += `
+                    <circle cx="55" cy="100" r="12" fill="${skinColor}" stroke="${ornamentColor}" stroke-width="2"/>
+                    <circle cx="145" cy="100" r="12" fill="${skinColor}" stroke="${ornamentColor}" stroke-width="2"/>
+                    ${!isSilhouette ? '<polygon points="100,120 104,126 100,132 96,126" fill="#67E8F9"/>' : ''}
+                `;
+            } else if (charId === 'matchanu') {
+                // Fish tail bottom
+                extraFeature += `
+                    <path d="M 140 160 Q 180 170 190 150 Q 185 185 160 185 Z" fill="${isSilhouette ? '#334155' : '#38BDF8'}" />
+                    <path d="M 160 185 Q 180 200 195 190 Q 180 175 160 185 Z" fill="${isSilhouette ? '#1E293B' : '#0284C7'}" />
+                    <circle cx="55" cy="100" r="10" fill="${skinColor}"/>
+                    <circle cx="145" cy="100" r="10" fill="${skinColor}"/>
+                `;
+            } else if (charId === 'sida') {
+                // Side Flower Tiara
+                extraFeature += `
+                    <circle cx="140" cy="80" r="8" fill="${isSilhouette ? '#475569' : '#EC4899'}" />
+                    <circle cx="140" cy="80" r="4" fill="${isSilhouette ? '#334155' : '#FDE047'}" />
+                `;
+            } else if (charId === 'suphrip' || charId === 'ongkot' || charId === 'nilaphat') {
+                // Monkey ears
+                extraFeature += `
+                    <circle cx="55" cy="100" r="11" fill="${skinColor}" stroke="${ornamentColor}" stroke-width="2"/>
+                    <circle cx="145" cy="100" r="11" fill="${skinColor}" stroke="${ornamentColor}" stroke-width="2"/>
+                `;
+            }
+
+            const eyesHTML = isSilhouette ? '' : `
+                <!-- Cute Eyes -->
+                <ellipse cx="82" cy="102" rx="7" ry="9" fill="#1E293B" />
+                <ellipse cx="118" cy="102" rx="7" ry="9" fill="#1E293B" />
+                <circle cx="84" cy="99" r="2.5" fill="#FFFFFF" />
+                <circle cx="120" cy="99" r="2.5" fill="#FFFFFF" />
+                <path d="M 90 120 Q 100 128 110 120" fill="none" stroke="#1E293B" stroke-width="3" stroke-linecap="round"/>
+                <ellipse cx="73" cy="112" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+                <ellipse cx="127" cy="112" rx="5" ry="3" fill="#F472B6" opacity="0.6"/>
+            `;
+
+            return `
+            <svg viewBox="0 0 200 200" class="w-full h-full drop-shadow-md">
+                <circle cx="100" cy="100" r="90" fill="${isSilhouette ? '#E2E8F0' : '#FEF3C7'}" stroke="${isSilhouette ? '#CBD5E1' : '#FCD34D'}" stroke-width="4"/>
+                ${extraFeature}
+                <path d="M 40 190 Q 100 150 160 190 L 170 200 L 30 200 Z" fill="${isSilhouette ? '#1E293B' : '#D97706'}" />
+                <path d="M 65 160 Q 100 140 135 160 Q 100 185 65 160 Z" fill="${ornamentColor}" />
+                <ellipse cx="100" cy="105" rx="42" ry="40" fill="${skinColor}" />
+                ${eyesHTML}
+                <g>
+                    <path d="M 60 78 Q 100 68 140 78 Q 100 88 60 78 Z" fill="${crownColor}" stroke="${ornamentColor}" stroke-width="2"/>
+                    <path d="M 70 73 L 100 40 L 130 73 Z" fill="${crownColor}" />
+                    <path d="M 80 50 L 100 20 L 120 50 Z" fill="${ornamentColor}" />
+                    <path d="M 92 25 L 100 5 L 108 25 Z" fill="${crownColor}" />
+                    <circle cx="100" cy="65" r="4" fill="${isSilhouette ? '#334155' : '#EF4444'}" />
+                    <circle cx="100" cy="38" r="3" fill="${isSilhouette ? '#334155' : '#06B6D4'}" />
+                </g>
+            </svg>
+            `;
+        }
+
+
+        /* ----------------------------------------------------
+           4. GAME STATE MANAGEMENT
+        ---------------------------------------------------- */
+        let gameState = {
+            score: 0,
+            streak: 0,
+            currentMode: 'quiz',
+            quizQueue: [],
+            quizIndex: 0,
+            currentClueLevel: 1,
+            usedFiftyFifty: false,
+            speedQueue: [],
+            speedIndex: 0,
+            speedTimer: null,
+            speedTimeLeft: 15,
+            speedScore: 0
+        };
+
+        function shuffleArray(arr) {
+            return [...arr].sort(() => Math.random() - 0.5);
+        }
+
+        function switchMode(mode) {
+            playPopSound();
+            gameState.currentMode = mode;
+
+            ['quiz', 'speed', 'codex'].forEach(m => {
+                const tab = document.getElementById(`tab-${m}`);
+                const sec = document.getElementById(`mode-${m}`);
+                if (m === mode) {
+                    tab.className = "flex-1 py-2.5 text-center font-kanit font-bold text-sm md:text-base border-b-4 border-yellow-300 text-yellow-200 transition-all flex items-center justify-center gap-1.5";
+                    sec.classList.remove('hidden');
+                } else {
+                    tab.className = "flex-1 py-2.5 text-center font-kanit font-bold text-sm md:text-base border-b-4 border-transparent text-amber-100 hover:text-white transition-all flex items-center justify-center gap-1.5";
+                    sec.classList.add('hidden');
+                }
+            });
+
+            if (mode === 'quiz' && gameState.quizQueue.length === 0) {
+                initQuizMode();
+            } else if (mode === 'speed' && gameState.speedQueue.length === 0) {
+                initSpeedMode();
+            } else if (mode === 'codex') {
+                renderCodexGrid('all');
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           5. MODE 1: CLUE QUIZ LOGIC
+        ---------------------------------------------------- */
+        function initQuizMode() {
+            gameState.quizQueue = shuffleArray(RAMAKIEN_CHARACTERS).slice(0, 10);
+            gameState.quizIndex = 0;
+            loadQuizQuestion();
+        }
+
+        function loadQuizQuestion() {
+            const currentChar = gameState.quizQueue[gameState.quizIndex];
+            gameState.currentClueLevel = 1;
+            gameState.usedFiftyFifty = false;
+
+            document.getElementById('quizCurrentNum').innerText = gameState.quizIndex + 1;
+            document.getElementById('quizTotalNum').innerText = gameState.quizQueue.length;
+            document.getElementById('quizCategoryBadge').innerText = `ฝ่าย${currentChar.faction}`;
+
+            document.getElementById('clueText1').innerText = currentChar.clues[0];
+            document.getElementById('clueText2').innerText = '🔒 กด "ขอเบาะแสเพิ่ม" เพื่อปลดล็อก (หัก 25 คะแนน)';
+            document.getElementById('clueText3').innerText = '🔒 เบาะแสสุดท้ายเฉลยลักษณะเด่นพิเศษ';
+
+            const c2 = document.getElementById('clue2');
+            const c3 = document.getElementById('clue3');
+            c2.className = "p-3 bg-slate-100 rounded-2xl border-l-4 border-slate-300 font-medium text-slate-400 transition-all flex items-start gap-2.5 opacity-60";
+            c3.className = "p-3 bg-slate-100 rounded-2xl border-l-4 border-slate-300 font-medium text-slate-400 transition-all flex items-start gap-2.5 opacity-60";
+
+            document.getElementById('avatarSvgContainer').innerHTML = createCharacterSVG(currentChar.id, true);
+            document.getElementById('avatarStatusLabel').className = "mt-3 bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5";
+            document.getElementById('avatarStatusLabel').innerHTML = `<i class="fa-solid fa-user-secret"></i> ถอดรหัสเบาะแสเพื่อเปิดเผยโฉม!`;
+
+            updateStarsDisplay(3);
+            const fiftyBtn = document.getElementById('fiftyFiftyBtn');
+            fiftyBtn.disabled = false;
+            fiftyBtn.className = "bg-purple-100 hover:bg-purple-200 text-purple-700 font-bold text-xs px-3 py-1.5 rounded-xl border border-purple-300 transition flex items-center gap-1";
+
+            renderQuizOptions(currentChar);
+        }
+
+        function revealNextClue() {
+            const currentChar = gameState.quizQueue[gameState.quizIndex];
+            if (gameState.currentClueLevel < 3) {
+                playPopSound();
+                gameState.currentClueLevel++;
+                const lvl = gameState.currentClueLevel;
+                const clueDiv = document.getElementById(`clue${lvl}`);
+                const clueText = document.getElementById(`clueText${lvl}`);
+
+                clueText.innerText = currentChar.clues[lvl - 1];
+                clueDiv.className = "p-3 bg-amber-50/80 rounded-2xl border-l-4 border-amber-500 font-medium text-amber-950 transition-all flex items-start gap-2.5 animate-pop";
+
+                updateStarsDisplay(4 - gameState.currentClueLevel);
+            }
+        }
+
+        function updateStarsDisplay(num) {
+            const container = document.getElementById('starsContainer');
+            let starsHTML = '';
+            for (let i = 0; i < 3; i++) {
+                if (i < num) {
+                    starsHTML += `<i class="fa-solid fa-star text-yellow-400"></i>`;
+                } else {
+                    starsHTML += `<i class="fa-regular fa-star text-slate-300"></i>`;
+                }
+            }
+            container.innerHTML = starsHTML;
+        }
+
+        function renderQuizOptions(correctChar) {
+            const container = document.getElementById('quizOptionsGrid');
+            container.innerHTML = '';
+
+            const wrongChars = RAMAKIEN_CHARACTERS.filter(c => c.id !== correctChar.id);
+            const shuffledWrong = shuffleArray(wrongChars).slice(0, 3);
+            const allOptions = shuffleArray([correctChar, ...shuffledWrong]);
+
+            allOptions.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-opt-btn bg-white hover:bg-amber-50 text-slate-800 font-kanit font-bold text-base p-4 rounded-2xl border-2 border-slate-200 hover:border-amber-400 shadow transition transform active:scale-95 flex items-center justify-between";
+                btn.dataset.charId = option.id;
+                btn.onclick = () => checkQuizAnswer(option.id, correctChar.id, btn);
+                btn.innerHTML = `
+                    <span class="flex items-center gap-2">
+                        <span class="w-3.5 h-3.5 rounded-full shadow-sm" style="background-color: ${option.colorHex}"></span>
+                        ${option.name}
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-300"></i>
+                `;
+                container.appendChild(btn);
+            });
+        }
+
+        function useFiftyFifty() {
+            if (gameState.usedFiftyFifty) return;
+            playPopSound();
+            gameState.usedFiftyFifty = true;
+
+            const currentChar = gameState.quizQueue[gameState.quizIndex];
+            const buttons = Array.from(document.querySelectorAll('.quiz-opt-btn'));
+            let removedCount = 0;
+
+            buttons.forEach(btn => {
+                if (btn.dataset.charId !== currentChar.id && removedCount < 2) {
+                    btn.disabled = true;
+                    btn.classList.add('opacity-30', 'line-through', 'bg-slate-100');
+                    removedCount++;
+                }
+            });
+
+            const fiftyBtn = document.getElementById('fiftyFiftyBtn');
+            fiftyBtn.disabled = true;
+            fiftyBtn.className = "bg-slate-100 text-slate-400 font-bold text-xs px-3 py-1.5 rounded-xl border border-slate-200 cursor-not-allowed";
+        }
+
+        function checkQuizAnswer(selectedId, correctId, clickedBtn) {
+            const currentChar = gameState.quizQueue[gameState.quizIndex];
+            const allBtns = document.querySelectorAll('.quiz-opt-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (selectedId === correctId) {
+                playCorrectSound();
+
+                clickedBtn.className = "bg-emerald-500 text-white font-kanit font-bold text-base p-4 rounded-2xl border-2 border-emerald-600 shadow-lg flex items-center justify-between animate-pop";
+                clickedBtn.innerHTML += `<i class="fa-solid fa-circle-check text-xl"></i>`;
+
+                const basePts = (4 - gameState.currentClueLevel) * 25 + 25;
+                gameState.streak++;
+                const streakBonus = gameState.streak * 10;
+                const totalGained = basePts + streakBonus;
+                gameState.score += totalGained;
+
+                document.getElementById('scoreDisplay').innerText = gameState.score;
+                document.getElementById('streakDisplay').innerText = gameState.streak;
+
+                document.getElementById('avatarSvgContainer').innerHTML = createCharacterSVG(currentChar.id, false);
+                document.getElementById('avatarStatusLabel').className = "mt-3 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 animate-bounce-gentle";
+                document.getElementById('avatarStatusLabel').innerHTML = `🎉 ถูกต้อง! นี่คือ ${currentChar.name}`;
+
+                triggerConfetti();
+
+                setTimeout(() => {
+                    gameState.quizIndex++;
+                    if (gameState.quizIndex < gameState.quizQueue.length) {
+                        loadQuizQuestion();
+                    } else {
+                        showEndGameModal();
+                    }
+                }, 2200);
+
+            } else {
+                playWrongSound();
+                clickedBtn.className = "bg-red-500 text-white font-kanit font-bold text-base p-4 rounded-2xl border-2 border-red-600 shadow-lg flex items-center justify-between animate-shake";
+                clickedBtn.innerHTML += `<i class="fa-solid fa-circle-xmark text-xl"></i>`;
+
+                gameState.streak = 0;
+                document.getElementById('streakDisplay').innerText = '0';
+
+                allBtns.forEach(b => {
+                    if (b.dataset.charId === correctId) {
+                        b.className = "bg-emerald-100 text-emerald-900 font-kanit font-bold text-base p-4 rounded-2xl border-2 border-emerald-400 flex items-center justify-between";
+                    }
+                });
+
+                setTimeout(() => {
+                    gameState.quizIndex++;
+                    if (gameState.quizIndex < gameState.quizQueue.length) {
+                        loadQuizQuestion();
+                    } else {
+                        showEndGameModal();
+                    }
+                }, 2400);
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           6. MODE 2: SPEED VISUAL MATCH LOGIC
+        ---------------------------------------------------- */
+        function initSpeedMode() {
+            gameState.speedQueue = shuffleArray(RAMAKIEN_CHARACTERS).slice(0, 10);
+            gameState.speedIndex = 0;
+            gameState.speedScore = 0;
+            document.getElementById('speedScoreDisplay').innerText = '0';
+            loadSpeedQuestion();
+        }
+
+        function loadSpeedQuestion() {
+            if (gameState.speedTimer) clearInterval(gameState.speedTimer);
+
+            const currentChar = gameState.speedQueue[gameState.speedIndex];
+            document.getElementById('speedCurrentNum').innerText = gameState.speedIndex + 1;
+
+            const questionPrompts = [
+                `ตัวละครใดมีกาย "${currentChar.colorName}" และเป็น ${currentChar.title}?`,
+                `ใครคือเจ้าของอาวุธวิเศษ "${currentChar.weapon}" ?`,
+                `ทายสิว่าตัวละครใดสังกัด ${currentChar.faction === 'มนุษย์/เทพ' ? 'ฝ่ายมนุษย์/เทพ' : 'ฝ่าย' + currentChar.faction} และมีกาย ${currentChar.colorName}?`
+            ];
+            const randomPrompt = questionPrompts[Math.floor(Math.random() * questionPrompts.length)];
+            document.getElementById('speedQuestionTitle').innerText = `"${randomPrompt}"`;
+
+            const wrongChars = RAMAKIEN_CHARACTERS.filter(c => c.id !== currentChar.id);
+            const options = shuffleArray([currentChar, ...shuffleArray(wrongChars).slice(0, 3)]);
+
+            const grid = document.getElementById('speedOptionsGrid');
+            grid.innerHTML = '';
+
+            options.forEach(opt => {
+                const card = document.createElement('button');
+                card.className = "bg-purple-50 hover:bg-purple-100 border-2 border-purple-200 hover:border-purple-400 rounded-2xl p-3 flex flex-col items-center justify-center transition transform active:scale-95 space-y-2 shadow";
+                card.onclick = () => checkSpeedAnswer(opt.id, currentChar.id);
+                card.innerHTML = `
+                    <div class="w-20 h-20">
+                        ${createCharacterSVG(opt.id, false)}
+                    </div>
+                    <span class="font-kanit font-bold text-sm text-purple-950">${opt.name}</span>
+                `;
+                grid.appendChild(card);
+            });
+
+            gameState.speedTimeLeft = 15;
+            updateTimerCircle(15);
+            gameState.speedTimer = setInterval(() => {
+                gameState.speedTimeLeft--;
+                updateTimerCircle(gameState.speedTimeLeft);
+                if (gameState.speedTimeLeft <= 0) {
+                    clearInterval(gameState.speedTimer);
+                    playWrongSound();
+                    nextSpeedQuestion();
+                }
+            }, 1000);
+        }
+
+        function updateTimerCircle(timeLeft) {
+            document.getElementById('speedTimerText').innerText = timeLeft;
+            const progress = (timeLeft / 15) * 100;
+            document.getElementById('timerCircleProgress').setAttribute('stroke-dasharray', `${progress}, 100`);
+        }
+
+        function checkSpeedAnswer(selectedId, correctId) {
+            clearInterval(gameState.speedTimer);
+            if (selectedId === correctId) {
+                playCorrectSound();
+                gameState.speedScore += gameState.speedTimeLeft * 10 + 50;
+                document.getElementById('speedScoreDisplay').innerText = gameState.speedScore;
+                triggerConfetti();
+            } else {
+                playWrongSound();
+            }
+            setTimeout(nextSpeedQuestion, 1000);
+        }
+
+        function nextSpeedQuestion() {
+            gameState.speedIndex++;
+            if (gameState.speedIndex < gameState.speedQueue.length) {
+                loadSpeedQuestion();
+            } else {
+                showEndGameModal(true);
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           7. MODE 3: CHARACTER CODEX (สมุดภาพ) LOGIC
+        ---------------------------------------------------- */
+        function renderCodexGrid(filter = 'all') {
+            const grid = document.getElementById('codexGrid');
+            grid.innerHTML = '';
+
+            const filtered = filter === 'all' 
+                ? RAMAKIEN_CHARACTERS 
+                : RAMAKIEN_CHARACTERS.filter(c => c.faction === filter);
+
+            filtered.forEach(char => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-4 shadow-md border-2 border-amber-200 hover:border-amber-400 transition transform hover:-translate-y-1 cursor-pointer flex flex-col items-center text-center group";
+                card.onclick = () => openCodexModal(char.id);
+                card.innerHTML = `
+                    <div class="w-28 h-28 mb-2 transform group-hover:scale-105 transition">
+                        ${createCharacterSVG(char.id, false)}
+                    </div>
+                    <span class="text-[10px] font-bold px-2.5 py-0.5 rounded-full mb-1 ${
+                        char.faction === 'มนุษย์/เทพ' ? 'bg-emerald-100 text-emerald-800' :
+                        char.faction === 'ลิง' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                    }">ฝ่าย${char.faction}</span>
+                    <h3 class="font-kanit font-bold text-base text-slate-800">${char.name}</h3>
+                    <p class="text-[11px] text-slate-500 line-clamp-1">${char.colorName}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterCodex(faction) {
+            playPopSound();
+            const btns = document.querySelectorAll('.codex-filter-btn');
+            btns.forEach(b => {
+                if (b.innerText.includes(faction) || (faction === 'all' && b.innerText === 'ทั้งหมด')) {
+                    b.className = "codex-filter-btn active bg-amber-500 text-white px-3 py-1 rounded-xl text-xs font-bold transition";
+                } else {
+                    b.className = "codex-filter-btn text-amber-800 hover:bg-amber-200 px-3 py-1 rounded-xl text-xs font-bold transition";
+                }
+            });
+            renderCodexGrid(faction);
+        }
+
+        let currentModalCharId = null;
+
+        function openCodexModal(charId) {
+            playPopSound();
+            currentModalCharId = charId;
+            const char = RAMAKIEN_CHARACTERS.find(c => c.id === charId);
+            if (!char) return;
+
+            document.getElementById('modalAvatarBox').innerHTML = createCharacterSVG(char.id, false);
+            document.getElementById('modalCharName').innerText = char.name;
+            document.getElementById('modalCharTitle').innerText = char.title;
+            document.getElementById('modalFactionBadge').innerText = `ฝ่าย${char.faction}`;
+            document.getElementById('modalBodyColor').innerText = char.colorName;
+            document.getElementById('modalWeapon').innerText = char.weapon;
+            document.getElementById('modalStoryText').innerText = char.story;
+
+            document.getElementById('codexModal').classList.remove('hidden');
+        }
+
+        function closeCodexModal() {
+            playPopSound();
+            document.getElementById('codexModal').classList.add('hidden');
+        }
+
+        function closeCodexModal() {
+            playPopSound();
+            document.getElementById('codexModal').classList.add('hidden');
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        }
+
+        function playCurrentCharacterVoice() {
+            if (currentModalCharId) {
+                playCharacterVoice(currentModalCharId);
+            }
+        }
+
+
+        /* ----------------------------------------------------
+           8. END GAME CELEBRATION & CONFETTI SYSTEM
+        ---------------------------------------------------- */
+        function showEndGameModal(isSpeed = false) {
+            playFanfareSound();
+            triggerConfetti();
+
+            const modal = document.getElementById('endGameModal');
+            const score = isSpeed ? gameState.speedScore : gameState.score;
+            document.getElementById('endFinalScore').innerText = score;
+
+            let badge = '🏅 นักสืบรามเกียรติ์ฝึกหัด';
+            if (score > 600) badge = '👑 เซียนรามเกียรติ์';
+            else if (score > 300) badge = '🌟 ยอดนักสืบวรรณคดี';
+
+            document.getElementById('endBadgeName').innerText = badge;
+            modal.classList.remove('hidden');
+        }
+
+        function closeEndModal() {
+            playPopSound();
+            document.getElementById('endGameModal').classList.add('hidden');
+        }
+
+        function restartQuizMode() {
+            closeEndModal();
+            gameState.score = 0;
+            gameState.streak = 0;
+            document.getElementById('scoreDisplay').innerText = '0';
+            document.getElementById('streakDisplay').innerText = '0';
+            switchMode('quiz');
+            initQuizMode();
+        }
+
+        function triggerConfetti() {
+            const canvas = document.getElementById('confettiCanvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#F59E0B', '#10B981', '#EF4444', '#8B5CF6', '#EC4899', '#38BDF8'];
+
+            for (let i = 0; i < 90; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 16,
+                    vy: (Math.random() - 0.7) * 16,
+                    size: Math.random() * 8 + 4,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    life: 100
+                });
+            }
+
+            function animateConfetti() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let active = false;
+
+                particles.forEach(p => {
+                    if (p.life > 0) {
+                        active = true;
+                        p.x += p.vx;
+                        p.y += p.vy;
+                        p.vy += 0.22;
+                        p.life -= 1.5;
+
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                if (active) {
+                    requestAnimationFrame(animateConfetti);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            animateConfetti();
+        }
+
+        /* Start App on Load */
+        window.onload = function() {
+            initQuizMode();
+        };
+    </script>
+</body>
+</html>
